@@ -14,7 +14,7 @@ from telegram.ext import (
 
 from bark_monitor.bots.very_bark_bot import VeryBarkBot
 from bark_monitor.chats import Chats
-from bark_monitor.google_sync import BaseSync
+from bark_monitor.base_sync import BaseSync
 from bark_monitor.recorders.base_recorder import BaseRecorder
 from bark_monitor.recorders.recording import Recording
 

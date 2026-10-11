@@ -1,0 +1,15 @@
+# Core local recording and bark-detection dependencies.
+# tensorflow-hub imports pkg_resources, so setuptools must remain below 82.
+jsonpickle>=4.0.0
+numpy>=2.0.2
+requests>=2.32.3
+scipy>=1.14.1
+setuptools<82
+sounddevice>=0.5.1
+tensorflow>=2.18.0
+tensorflow-hub>=0.16.1
+tyro>=0.9.24
+
+# Cloud integrations are optional; install them with:
+# pip install -e ".[google,telegram]"     # Google Drive + Telegram
+# pip install -e ".[nextcloud,telegram]"   # Nextcloud + Telegram

@@ -106,8 +106,12 @@ class WaveRecorder(BaseRecorder):
 
             # Exception overflow is needed when running on the rpi
             # Because processing is slow and frame can be lost.
-            data = self._stream.read(self._chunk, exception_on_overflow=False)
-            self._nn_frames.append(data)
+            data, overflowed = self._stream.read(self._chunk)
+            if overflowed:
+                self._bark_logger.warning(
+                    "Audio input overflowed; frames may be missing"
+                )
+            self._nn_frames.append(data.tobytes())
             duration = int((len(self._nn_frames) * self._chunk) / self._fs)
 
             # Guard clause: do not run bark detection if recording time is less than

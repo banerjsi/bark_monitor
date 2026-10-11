@@ -8,26 +8,15 @@ description = "A package to monitor your dog's barks"
 authors = [{ name = "Malcolm Mielle", email = "malcolm.mielle@ik.me" }]
 readme = "README.md"
 dependencies = [
-  "google-api-python-client>=2.155.0",
-  "google-auth-httplib2>=0.2.0",
-  "google-auth-oauthlib>=1.2.1",
   "jsonpickle>=4.0.0",
-  "oauth2client>=4.1.3",
-  "pandas>=2.2.3",
-  "python-telegram-bot>=21.9",
-  "requests>=2.32.3",
-  "tensorflow-hub>=0.16.1",
-  "tensorflow>=2.18.0",
-  "wave>=0.0.2",
   "numpy>=2.0.2",
-  "pyaudio>=0.2.14",
+  "requests>=2.32.3",
   "scipy>=1.14.1",
+  "setuptools<82",
+  "sounddevice>=0.5.1",
+  "tensorflow>=2.18.0",
+  "tensorflow-hub>=0.16.1",
   "tyro>=0.9.24",
-  "fastapi[standard]>=0.115.12",
-  "uvicorn[standard]>=0.34.3",
-  "nc-py-api>=0.20.2",
-  "fastapi-rss>=0.3.0",
-  "nio-bot[cli,e2ee]>=1.1.1",
 ]
 keywords = [
   "bark",
@@ -43,17 +32,30 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 dynamic = ["version"]
 
-
 [project.optional-dependencies]
+google = [
+  "google-api-python-client>=2.155.0",
+  "google-auth-httplib2>=0.2.0",
+  "google-auth-oauthlib>=1.2.1",
+  "oauth2client>=4.1.3",
+]
+telegram = ["python-telegram-bot>=21.9"]
+nextcloud = ["nc-py-api>=0.20.2"]
+matrix = ["nio-bot[cli,e2ee]>=1.1.1"]
+web = [
+  "fastapi[standard]>=0.115.12",
+  "uvicorn[standard]>=0.34.3",
+  "fastapi-rss>=0.3.0",
+]
 docs = ["mkdocs >= 1.4.3", "mkdocs-material >= 9.1.17"]
 
 [project.scripts]
 bark-monitor = "bark_monitor.cli.yamnet_record:main"
-bark-monitor-lite = "bark_monitor.cli.yamnet_lite_record:main"
+bark-monitor-lite = "bark_monitor.cli.telegram.yamnet_lite_record:main"
 bark-monitor-amplitude = "bark_monitor.cli.record:main"
 
 [project.urls]
@@ -113,3 +115,9 @@ version_scheme = "no-guess-dev"
 
 [tool.hatch.build.hooks.vcs]
 version-file = "_version.py"
+
+[tool.hatch.build.targets.wheel.force-include]
+"models/lite-model_yamnet_classification_tflite_1.tflite" = "bark_monitor/models/lite-model_yamnet_classification_tflite_1.tflite"
+
+[tool.hatch.build.targets.sdist.force-include]
+"models/lite-model_yamnet_classification_tflite_1.tflite" = "models/lite-model_yamnet_classification_tflite_1.tflite"

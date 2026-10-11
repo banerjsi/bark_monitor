@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from collections import deque
 from dataclasses import dataclass
@@ -6,9 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import jsonpickle
-from fastapi_rss import GUID, Category, CategoryAttrs, Item
 
-from bark_monitor.google_sync import BaseSync
+from bark_monitor.base_sync import BaseSync
 
 
 @dataclass(kw_only=True)
@@ -22,6 +23,8 @@ class Activity:
         self.uid = str(uuid.uuid4())
 
     def to_rss_feed_item(self) -> Item:
+        from fastapi_rss import GUID, Item
+
         return Item(
             # Swicth to ispermalink false when issue is resolved
             # https://github.com/sbordeyne/fastapi_rss/issues/13
@@ -191,6 +194,8 @@ class Recording:
 
     @property
     def feed_data(self) -> dict[str, Any]:
+        from fastapi_rss import Category, CategoryAttrs
+
         items = []
         for activity in self._activity_tracker:
             print("Date", activity.date.isoformat())

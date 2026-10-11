@@ -21,7 +21,17 @@ class YamnetLiteRecorder(WaveRecorder):
         framerate: int = 16000,
         send_text_callback: Callable[[str], None] | None = None,
     ) -> None:
-        model_path = Path("models", "lite-model_yamnet_classification_tflite_1.tflite")
+        model_path = (
+            Path(__file__).resolve().parents[1]
+            / "models"
+            / "lite-model_yamnet_classification_tflite_1.tflite"
+        )
+        if not model_path.exists():
+            model_path = (
+                Path(__file__).resolve().parents[2]
+                / "models"
+                / "lite-model_yamnet_classification_tflite_1.tflite"
+            )
         self._interpreter = tf.lite.Interpreter(str(model_path))
         labels_file = zipfile.ZipFile(model_path).open("yamnet_label_list.txt")
         self._labels = [

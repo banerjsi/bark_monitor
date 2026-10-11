@@ -47,6 +47,7 @@ class Parameters:
     microphone_framerate: int = 16000
     sampling_time_bark_seconds: int = 1
     accept_new_users: bool = False
+    local: bool = False
     google_creds: str | None = None
 
     matrix_parameters: MatrixParameters | None = None
