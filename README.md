@@ -52,6 +52,19 @@ directories are created automatically if missing; both are ignored by Git. This 
 uses the bundled TFLite model, logs notifications locally, and stops with Ctrl+C. On
 Debian/Ubuntu, install PortAudio first with `sudo apt install libportaudio2`.
 
+To also record local webcam clips when motion is detected or audio bark detection
+fires, install the video extra and run:
+
+```sh
+uv sync --extra video
+uv run bark-monitor-video --output-folder ./recordings
+```
+
+Video clips with audio are written as MP4 files under `recordings/audio/<date>/`,
+alongside the audio logs. This command uses the laptop's default webcam
+(`--camera-index 0`), the existing microphone stream, the local Lite YamNet model,
+and bundled local FFmpeg for muxing; it does not use cloud services.
+
 Cloud-backed features are optional. Install the matching extras, for example
 `pip install -e ".[google,telegram]"` for Google Drive and Telegram, or
 `pip install -e ".[nextcloud,telegram]"` for Nextcloud and Telegram.

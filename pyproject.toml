@@ -52,11 +52,13 @@ web = [
   "fastapi-rss>=0.3.0",
 ]
 docs = ["mkdocs >= 1.4.3", "mkdocs-material >= 9.1.17"]
+video = ["imageio-ffmpeg>=0.6.0", "opencv-python>=4.10.0.84"]
 
 [project.scripts]
 bark-monitor = "bark_monitor.cli.yamnet_record:main"
 bark-monitor-lite = "bark_monitor.cli.telegram.yamnet_lite_record:main"
 bark-monitor-amplitude = "bark_monitor.cli.record:main"
+bark-monitor-video = "bark_monitor.cli.video_record:main"
 
 [project.urls]
 repository = "https://codeberg.org/MalcolmMielle/bark_monitor"

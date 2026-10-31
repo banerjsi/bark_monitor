@@ -25,6 +25,8 @@ class YamnetRecorder(WaveRecorder):
         http_url: str | None = None,
         framerate: int = 16000,
         send_text_callback: Callable[[str], None] | None = None,
+        video_trigger_callback: Callable[[], None] | None = None,
+        audio_chunk_callback: Callable[[bytes, int], None] | None = None,
     ) -> None:
         """
         `api_key` is the key of telegram bot and `config_folder` is the folder with the
@@ -47,6 +49,8 @@ class YamnetRecorder(WaveRecorder):
             http_url=http_url,
             framerate=framerate,
             send_text_callback=send_text_callback,
+            video_trigger_callback=video_trigger_callback,
+            audio_chunk_callback=audio_chunk_callback,
         )
 
     def _detect(self, wave_file: Path) -> str:

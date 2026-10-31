@@ -28,6 +28,8 @@ class WaveRecorder(BaseRecorder):
         framerate: int = 16000,
         chunk: int = 4096,
         send_text_callback: Callable[[str], None] | None = None,
+        video_trigger_callback: Callable[[], None] | None = None,
+        audio_chunk_callback: Callable[[bytes, int], None] | None = None,
     ) -> None:
         """
         `api_key` is the key of telegram bot and `config_folder` is the folder with the
@@ -59,6 +61,8 @@ class WaveRecorder(BaseRecorder):
         ]
 
         self._temp_activity: Activity | None = None
+        self._video_trigger_callback = video_trigger_callback
+        self._audio_chunk_callback = audio_chunk_callback
 
         super().__init__(
             sync=sync,
@@ -111,7 +115,10 @@ class WaveRecorder(BaseRecorder):
                 self._bark_logger.warning(
                     "Audio input overflowed; frames may be missing"
                 )
-            self._nn_frames.append(data.tobytes())
+            audio_data = data.tobytes()
+            self._nn_frames.append(audio_data)
+            if self._audio_chunk_callback is not None:
+                self._audio_chunk_callback(audio_data, self._fs)
             duration = int((len(self._nn_frames) * self._chunk) / self._fs)
 
             # Guard clause: do not run bark detection if recording time is less than
@@ -141,6 +148,8 @@ class WaveRecorder(BaseRecorder):
 
         if label in self._animal_labels:
             payload[label] = 1
+            if self._video_trigger_callback is not None:
+                self._video_trigger_callback()
             # notify
             if self.send_text_callback is not None:
                 self.send_text_callback("detected: " + label)

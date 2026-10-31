@@ -20,6 +20,8 @@ class YamnetLiteRecorder(WaveRecorder):
         http_url: str | None = None,
         framerate: int = 16000,
         send_text_callback: Callable[[str], None] | None = None,
+        video_trigger_callback: Callable[[], None] | None = None,
+        audio_chunk_callback: Callable[[bytes, int], None] | None = None,
     ) -> None:
         model_path = (
             Path(__file__).resolve().parents[1]
@@ -51,6 +53,8 @@ class YamnetLiteRecorder(WaveRecorder):
             framerate=framerate,
             chunk=15600,
             send_text_callback=send_text_callback,
+            video_trigger_callback=video_trigger_callback,
+            audio_chunk_callback=audio_chunk_callback,
         )
 
     def _detect(self, wave_file: Path) -> str:
