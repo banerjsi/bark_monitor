@@ -44,18 +44,18 @@ class WaveRecorder(BaseRecorder):
         self._http_url = http_url
 
         self._animal_labels = [
-            "Animal",
-            "Domestic animals, pets",
+            # "Animal",
+            # "Domestic animals, pets",
             "Dog",
             "Bark",
             "Howl",
             "Growling",
             "Bow-wow",
             "Whimper (dog)",
-            "Cat",
-            "Purr",
-            "Meow",
-            "Hiss",
+            # "Cat",
+            # "Purr",
+            # "Meow",
+            # "Hiss",
         ]
 
         self._temp_activity: Activity | None = None

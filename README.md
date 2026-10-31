@@ -37,11 +37,20 @@ Check out our [documentation](https://malcolmmielle.codeberg.page/bark_monitor/@
 
 ### Local-only mode
 
-Run `bark-monitor --local --output-folder ./recordings --config-folder ./config` to
-record and detect barks with the bundled TFLite model. This mode does not connect to
-Telegram, Google Drive, or Nextcloud and does not require cloud credentials. Notifications
-are written to the application log; stop the recorder with Ctrl+C. On Debian/Ubuntu,
-install the PortAudio runtime library with `sudo apt install libportaudio2`.
+From VS Code, open this repository as the workspace and run these commands in its
+integrated terminal:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+bark-monitor --local --output-folder ./recordings --config-folder ./config
+```
+
+No config file or cloud credentials are needed. The `recordings/` and `config/`
+directories are created automatically if missing; both are ignored by Git. This mode
+uses the bundled TFLite model, logs notifications locally, and stops with Ctrl+C. On
+Debian/Ubuntu, install PortAudio first with `sudo apt install libportaudio2`.
 
 Cloud-backed features are optional. Install the matching extras, for example
 `pip install -e ".[google,telegram]"` for Google Drive and Telegram, or
