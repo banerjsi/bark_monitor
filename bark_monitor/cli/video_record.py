@@ -40,11 +40,12 @@ def main() -> None:
         send_text_callback=logging.info,
         video_trigger_callback=video_recorder.trigger,
         audio_chunk_callback=video_recorder.add_audio_chunk,
+        session_started_callback=video_recorder.set_session_audio_folder,
     )
 
-    video_recorder.start()
     try:
         audio_recorder.record()
+        video_recorder.start()
         while audio_recorder.running:
             time.sleep(1)
     except KeyboardInterrupt:

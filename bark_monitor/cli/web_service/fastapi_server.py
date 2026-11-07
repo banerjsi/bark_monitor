@@ -43,7 +43,7 @@ def fasdtapi_webserver(app: FastAPI, recorder: BaseRecorder) -> None:
 
     @app.get("/last_audio")
     async def last_audio() -> FileResponse:
-        audio_folder = recorder.today_audio_folder
+        audio_folder = recorder.session_audio_folder
         audio_files = audio_folder.glob("*")
         if len(list(audio_files)) == 0:
             raise HTTPException(status_code=404, detail="No audio files found")

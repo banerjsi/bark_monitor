@@ -30,6 +30,7 @@ The bark monitor will:
 * Monitor its barking real time and send you notification through a Matrix bot/Telegram bot/RSS feed when your neighbor drives the dog crazy and they barks.
   Detection of the bark can be done using the [Yamnet](https://www.tensorflow.org/hub/tutorials/yamnet) neural network implemented in tensorflow, or the amplitude of the signal.
   Using Yamnet, cats are also tracked ;).
+* Save a local HTML activity report in each session folder, with detection timelines and the percentage of time with activity. Motion is included for video sessions; the report is not sent through Telegram.
 
 ## Install and use
 
@@ -60,10 +61,12 @@ uv sync --extra video
 uv run bark-monitor-video --output-folder ./recordings
 ```
 
-Video clips with audio are written as MP4 files under `recordings/audio/<date>/`,
-alongside the audio logs. This command uses the laptop's default webcam
-(`--camera-index 0`), the existing microphone stream, the local Lite YamNet model,
-and bundled local FFmpeg for muxing; it does not use cloud services.
+Each recording session gets its own timestamped folder under `recordings/audio/`.
+Audio files and video clips with audio are stored together in that folder, along
+with the report. For video sessions, the report also includes motion timelines.
+This command uses the laptop's default webcam (`--camera-index 0`), the existing
+microphone stream, the local Lite YamNet model, and bundled local FFmpeg for muxing;
+it does not use cloud services.
 
 Cloud-backed features are optional. Install the matching extras, for example
 `pip install -e ".[google,telegram]"` for Google Drive and Telegram, or

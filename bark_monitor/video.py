@@ -11,13 +11,15 @@ import time
 import wave
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     import numpy as np
+
+from bark_monitor.recorders.session_report import SessionReport
 
 
 class _VideoWriter(Protocol):
@@ -82,6 +84,7 @@ class MotionVideoRecorder:
         self.startup_timeout = startup_timeout
 
         self._logger = logging.getLogger("bark_monitor")
+        self._session_audio_folder: Path | None = None
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()
         self._trigger_lock = threading.Lock()
@@ -97,6 +100,23 @@ class MotionVideoRecorder:
         """Start the webcam worker and fail if required local tools are missing."""
         if self._thread is not None:
             raise RuntimeError("Video recorder can only be started once")
+
+        if self._session_audio_folder is None:
+            session_name = datetime.now().strftime("%d-%m-%Y_%H%M")
+            session_folder = self.output_folder / "audio" / session_name
+            suffix = 1
+            while True:
+                try:
+                    session_folder.mkdir(parents=True)
+                    self._session_audio_folder = session_folder
+                    break
+                except FileExistsError:
+                    session_folder = (
+                        self.output_folder / "audio" / f"{session_name}_{suffix}"
+                    )
+                    suffix += 1
+        else:
+            self._session_audio_folder.mkdir(parents=True, exist_ok=True)
 
         for module_name, feature in (
             ("cv2", "OpenCV webcam capture"),
@@ -173,6 +193,22 @@ class MotionVideoRecorder:
             mux_thread.join()
         if self._error is not None:
             raise RuntimeError("Webcam recording failed") from self._error
+        if (
+            self._session_audio_folder is not None
+            and (self._session_audio_folder / ".session-report.json").exists()
+        ):
+            SessionReport.refresh(self._session_audio_folder)
+
+    def _save_motion_detection(
+        self, started_at: datetime, ended_at: datetime
+    ) -> None:
+        if self._session_audio_folder is None:
+            return
+        if ended_at <= started_at:
+            ended_at = started_at + timedelta(milliseconds=1)
+        SessionReport.add_detection(
+            self._session_audio_folder, started_at, ended_at, "motion", "Motion"
+        )
 
     def _record_loop(self, cv2_module: ModuleType) -> None:
         capture = None
@@ -185,6 +221,7 @@ class MotionVideoRecorder:
         clip_audio_packets: list[_AudioPacket] = []
         pending_clips: list[_PendingClip] = []
         previous_gray: np.ndarray | None = None
+        motion_started_at: datetime | None = None
         latest_audio_end = 0.0
         try:
             capture = cv2_module.VideoCapture(self.camera_index)
@@ -214,6 +251,7 @@ class MotionVideoRecorder:
                 if not success or frame is None:
                     raise RuntimeError("Could not read a frame from the webcam")
 
+                detected_motion = False
                 gray = cv2_module.cvtColor(frame, cv2_module.COLOR_BGR2GRAY)
                 gray = cv2_module.GaussianBlur(gray, (21, 21), 0)
                 if previous_gray is not None:
@@ -230,11 +268,19 @@ class MotionVideoRecorder:
                         cv2_module.RETR_EXTERNAL,
                         cv2_module.CHAIN_APPROX_SIMPLE,
                     )[0]
-                    if any(
+                    detected_motion = any(
                         cv2_module.contourArea(contour) >= self.minimum_motion_area
                         for contour in contours
-                    ):
+                    )
+                    if detected_motion:
                         self.trigger()
+                frame_time = datetime.now()
+                if detected_motion:
+                    if motion_started_at is None:
+                        motion_started_at = frame_time
+                elif motion_started_at is not None:
+                    self._save_motion_detection(motion_started_at, frame_time)
+                    motion_started_at = None
                 previous_gray = gray
 
                 latest_audio_end = max(
@@ -287,6 +333,8 @@ class MotionVideoRecorder:
             self._error = error
             self._logger.exception("Local webcam recording stopped unexpectedly")
         finally:
+            if motion_started_at is not None:
+                self._save_motion_detection(motion_started_at, datetime.now())
             self._ready_event.set()
             latest_audio_end = max(
                 latest_audio_end,
@@ -319,6 +367,13 @@ class MotionVideoRecorder:
     def _is_recording_active(self) -> bool:
         with self._trigger_lock:
             return time.monotonic() < self._record_until
+
+    def set_session_audio_folder(self, session_audio_folder: Path) -> None:
+        if self._thread is not None:
+            raise RuntimeError(
+                "Cannot change the session folder after video has started"
+            )
+        self._session_audio_folder = session_audio_folder
 
     def _drain_audio_queue(
         self,
@@ -483,13 +538,14 @@ class MotionVideoRecorder:
         Path,
     ]:
         height, width = frame.shape[:2]
-        date_folder = self.output_folder / "audio" / datetime.now().strftime("%d-%m-%Y")
-        date_folder.mkdir(parents=True, exist_ok=True)
+        assert self._session_audio_folder is not None
+        session_folder = self._session_audio_folder
+        session_folder.mkdir(parents=True, exist_ok=True)
         filename = datetime.now().strftime("video_%d-%m-%Y_%H-%M-%S-%f.mp4")
-        output_path = date_folder / filename
+        output_path = session_folder / filename
         temporary_directory = tempfile.TemporaryDirectory(
             prefix=".bark-monitor-video-",
-            dir=date_folder,
+            dir=session_folder,
         )
         video_path = Path(temporary_directory.name, "video.mp4")
 

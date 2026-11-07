@@ -281,17 +281,17 @@ class VeryBarkTelegramBot(VeryBarkBot):
 
         async def error_message_audio_file(update: Update) -> None:
             assert update.message is not None
-            await update.message.reply_text("Recordings of today:")
+            await update.message.reply_text("Recordings of this session:")
             for file in audio_folder.iterdir():
                 await update.message.reply_text("/audio " + file.name)
 
         assert update.message is not None
         assert update.message.text is not None
-        audio_folder = self._recorder.today_audio_folder
+        audio_folder = self._recorder.session_audio_folder
 
         if not audio_folder.exists() or len(list(audio_folder.iterdir())) == 0:
             await update.message.reply_text(
-                "No recording today. Your dog has been a good boy :3"
+                "No recording in this session. Your dog has been a good boy :3"
             )
             return
 
@@ -320,7 +320,7 @@ class VeryBarkTelegramBot(VeryBarkBot):
         if not await self._is_registered(update.effective_chat.id, context):
             return
 
-        audio_folder = self._recorder.today_audio_folder
+        audio_folder = self._recorder.session_audio_folder
         audio_files = audio_folder.glob("*")
         audio_file = max(audio_files, key=lambda p: p.stat().st_ctime)
 

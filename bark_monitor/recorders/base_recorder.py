@@ -10,6 +10,7 @@ import sounddevice
 
 from bark_monitor.base_sync import BaseSync
 from bark_monitor.recorders.recording import Recording
+from bark_monitor.recorders.session_report import SessionReport
 
 
 class BaseRecorder(ABC):
@@ -20,6 +21,7 @@ class BaseRecorder(ABC):
         framerate: int = 44100,
         chunk: int = 4096,
         send_text_callback: Callable[[str], None] | None = None,
+        session_started_callback: Callable[[Path], None] | None = None,
     ) -> None:
         self.running = False
         self.is_paused = False
@@ -37,11 +39,13 @@ class BaseRecorder(ABC):
         self._bark_logger = logging.getLogger("bark_monitor")
 
         self.output_folder = output_folder
+        self._session_audio_folder: Path | None = None
 
         self._bark_logger.info("Starting bot")
         self._sync = sync
 
         self.send_text_callback = send_text_callback
+        self.session_started_callback = session_started_callback
 
     @property
     def sync(self) -> BaseSync:
@@ -50,31 +54,52 @@ class BaseRecorder(ABC):
     @property
     def audio_folder(self) -> Path:
         audio_path = Path(self.output_folder, "audio")
-        if not audio_path.exists():
-            audio_path.mkdir(parents=True)
+        audio_path.mkdir(parents=True, exist_ok=True)
         return audio_path
 
     @property
+    def session_audio_folder(self) -> Path:
+        if self._session_audio_folder is not None:
+            return self._session_audio_folder
+
+        session_folders = [
+            folder for folder in self.audio_folder.iterdir() if folder.is_dir()
+        ]
+        if session_folders:
+            return max(session_folders, key=lambda folder: folder.stat().st_mtime)
+        return self.audio_folder
+
+    @property
     def today_audio_folder(self) -> Path:
-        return Path(
-            self.audio_folder,
-            datetime.now().strftime("%d-%m-%Y"),
-        )
+        return self.session_audio_folder
 
     @property
     def _filename(self) -> Path:
         now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-        filename = Path(
-            self.today_audio_folder,
-            now + ".wav",
-        )
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True)
+        filename = self.session_audio_folder / (now + ".wav")
+        filename.parent.mkdir(parents=True, exist_ok=True)
         return filename.absolute()
 
     def _init(self):
+        session_name = datetime.now().strftime("%d-%m-%Y_%H%M")
+        self._session_audio_folder = self.audio_folder / session_name
+        suffix = 1
+        while True:
+            try:
+                self._session_audio_folder.mkdir()
+                break
+            except FileExistsError:
+                self._session_audio_folder = self.audio_folder / (
+                    f"{session_name}_{suffix}"
+                )
+                suffix += 1
+        if self.session_started_callback is not None:
+            self.session_started_callback(self._session_audio_folder)
+
         recording = Recording.read(self.output_folder, sync_service=self._sync)
-        recording.start = datetime.now()
+        session_started_at = datetime.now()
+        recording.start = session_started_at
+        SessionReport.start(self._session_audio_folder, session_started_at)
         self.running = True
 
     def record(self) -> None:
@@ -83,14 +108,17 @@ class BaseRecorder(ABC):
 
     def stop(self) -> None:
         self.running = False
+        self._stop()
         recording = Recording.read(self.output_folder, sync_service=self._sync)
-        recording.end(datetime.now())
+        ended_at = datetime.now()
+        recording.end(ended_at)
+
+        assert self._session_audio_folder is not None
+        SessionReport.finish(self._session_audio_folder, ended_at)
 
         # Sync
         recording.upload(self._sync)
         self._sync.save_audio(self.audio_folder)
-
-        self._stop()
 
     def _stop(self) -> None:
         if self._t is None:
@@ -104,7 +132,7 @@ class BaseRecorder(ABC):
         """
         filepath = self._filename
         if prefix is not None:
-            filepath = Path(self.today_audio_folder, prefix + " " + self._filename.name)
+            filepath = filepath.with_name(prefix + " " + filepath.name)
         file = self._save_recording_to(frames, filepath)
         if self.send_text_callback is not None:
             self.send_text_callback(

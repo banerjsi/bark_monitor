@@ -14,6 +14,7 @@ import tensorflow as tf
 from bark_monitor.base_sync import BaseSync
 from bark_monitor.recorders.base_recorder import BaseRecorder
 from bark_monitor.recorders.recording import Activity, Recording
+from bark_monitor.recorders.session_report import SessionReport
 
 
 class WaveRecorder(BaseRecorder):
@@ -30,6 +31,7 @@ class WaveRecorder(BaseRecorder):
         send_text_callback: Callable[[str], None] | None = None,
         video_trigger_callback: Callable[[], None] | None = None,
         audio_chunk_callback: Callable[[bytes, int], None] | None = None,
+        session_started_callback: Callable[[Path], None] | None = None,
     ) -> None:
         """
         `api_key` is the key of telegram bot and `config_folder` is the folder with the
@@ -70,6 +72,7 @@ class WaveRecorder(BaseRecorder):
             framerate=framerate,
             chunk=chunk,
             send_text_callback=send_text_callback,
+            session_started_callback=session_started_callback,
         )
 
     @staticmethod
@@ -163,6 +166,15 @@ class WaveRecorder(BaseRecorder):
             )
             duration = timedelta(
                 seconds=(len(self._nn_frames) * self._chunk) / self._fs
+            )
+            detected_at = datetime.now()
+            assert self._session_audio_folder is not None
+            SessionReport.add_detection(
+                self._session_audio_folder,
+                detected_at - duration,
+                detected_at,
+                "sound",
+                label,
             )
             recording.add_time_barked(duration)
 

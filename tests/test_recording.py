@@ -8,10 +8,44 @@ from unittest import mock
 import jsonpickle
 
 from bark_monitor.fake_sync import FakeSync
+from bark_monitor.recorders.base_recorder import BaseRecorder
 from bark_monitor.recorders.recording import Activity, Recording
 
 
+class _TestRecorder(BaseRecorder):
+    def _record_loop(self) -> None:
+        pass
+
+
 class TestRecording(unittest.TestCase):
+    def test_each_recording_start_gets_a_timestamped_audio_folder(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            folders: list[Path] = []
+            recorder = _TestRecorder(
+                sync=FakeSync(),
+                output_folder=Path(temp_dir),
+                session_started_callback=folders.append,
+            )
+
+            recorder._init()
+            first_folder = recorder.session_audio_folder
+            self.assertEqual(recorder._filename.parent, first_folder)
+            recorder.running = False
+            recorder._init()
+            second_folder = recorder.session_audio_folder
+
+            self.assertNotEqual(first_folder, second_folder)
+            self.assertEqual(len(folders), 2)
+            self.assertEqual(folders, [first_folder, second_folder])
+            self.assertTrue(first_folder.is_dir())
+            self.assertTrue(second_folder.is_dir())
+            self.assertEqual(first_folder.parent, Path(temp_dir, "audio"))
+            self.assertRegex(first_folder.name, r"^\d{2}-\d{2}-\d{4}_\d{4}(?:_\d+)?$")
+            self.assertRegex(second_folder.name, r"^\d{2}-\d{2}-\d{4}_\d{4}(?:_\d+)?$")
+            datetime.strptime(first_folder.name.split("_")[0], "%d-%m-%Y")
+            self.assertRegex(first_folder.name.split("_")[1][:4], r"^\d{4}$")
+            self.assertRegex(second_folder.name.split("_")[1][:4], r"^\d{4}$")
+
     def test_goal(self) -> None:
         sync_service = FakeSync()
         recording = Recording.read(Path("tests/data"), sync_service=sync_service)

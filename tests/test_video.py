@@ -2,7 +2,6 @@ import threading
 import time
 import unittest
 import wave
-from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import ModuleType
@@ -82,7 +81,7 @@ class TestMotionVideoRecorder(unittest.TestCase):
                 motion_threshold=256,
             )
 
-    def test_motion_records_mp4_under_audio_date_folder(self) -> None:
+    def test_motion_records_mp4_under_session_folder(self) -> None:
         capture = _Capture()
         writer = _Writer()
         output_paths: list[Path] = []
@@ -168,10 +167,12 @@ class TestMotionVideoRecorder(unittest.TestCase):
             setattr(cv2_module, name, value)
 
         with TemporaryDirectory() as temp_dir:
+            session_folder = Path(temp_dir, "audio", "07-11-2026_10-12-18-123456")
             recorder = MotionVideoRecorder(
                 output_folder=Path(temp_dir),
                 recording_seconds=1,
             )
+            recorder.set_session_audio_folder(session_folder)
             recorder.add_audio_chunk(b"\x01\x00" * 16000, 16000)
 
             def import_module(module_name: str) -> ModuleType:
@@ -214,7 +215,4 @@ class TestMotionVideoRecorder(unittest.TestCase):
             self.assertEqual(muxed_audio[0][0], 16000)
             self.assertGreater(len(muxed_audio[0][1]), 0)
             self.assertEqual(muxed_outputs[0].suffix, ".mp4")
-            self.assertEqual(
-                muxed_outputs[0].parent,
-                Path(temp_dir, "audio", datetime.now().strftime("%d-%m-%Y")),
-            )
+            self.assertEqual(muxed_outputs[0].parent, session_folder)
