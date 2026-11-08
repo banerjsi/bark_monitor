@@ -1,82 +1,102 @@
-# Bark monitor
+# Bark Monitor
 
-[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/bark-monitor)
+Bark Monitor locally detects dog-related sounds, saves audio recordings, and can
+capture webcam video when motion or a bark is detected. Recordings and session
+reports are stored on your machine.
 
-[![Get it on Codeberg](/images/codeberg.png)](https://codeberg.org/MalcolmMielle/bark_monitor)
+## Features
 
-![my dog](images/watson.jpg)
+- Analyze microphone audio with the bundled Lite YamNet model.
+- Save audio snippets when dog-related sounds are detected.
+- Optionally record webcam clips with microphone audio when motion or a bark
+  triggers recording.
+- Create a local HTML report for each session with sound and motion timelines.
+- Run without cloud accounts or external services.
 
-Showing my neighbor my dog doesn't bark!
+## Requirements
 
-Get it today: `pip install bark-monitor` or `snap install bark-monitor`.
+- Python 3.12 or newer.
+- A microphone; a webcam is needed for video recording.
+- PortAudio on Linux. On Debian or Ubuntu, install it with
+  `sudo apt install libportaudio2`.
 
-> ATTENTION: if you found this repo on GitHub, this is a mirror of <https://codeberg.org/MalcolmMielle/bark_monitor> and PR won't be accepted on GitHub.
-> This mirror is only here to have snapcraft build available.
-> Please report issues on CodeBerg.
+## Install
 
-## Introduction
-
-Do you also have neighbor who accuses your dog of barking all the time, want to kick you out of your flat because of it, even though you know _it's not true_?
-Do you want to know if your dog is actually noisy when you are gone but you don't (and don't want to buy) a baby cam?
-
-Then this project is for you!
-
-## How to use the bark monitor
-
-The bark monitor will:
-
-* Record your dog while you are gone.
-  The recordings are saved in a folder to enable you to really show that neighbor they are full of shit.
-* Monitor its barking real time and send you notification through a Matrix bot/Telegram bot/RSS feed when your neighbor drives the dog crazy and they barks.
-  Detection of the bark can be done using the [Yamnet](https://www.tensorflow.org/hub/tutorials/yamnet) neural network implemented in tensorflow, or the amplitude of the signal.
-  Using Yamnet, cats are also tracked ;).
-* Save a local HTML activity report in each session folder, with detection timelines and the percentage of time with activity. Motion is included for video sessions; the report is not sent through Telegram.
-
-## Install and use
-
-Check out our [documentation](https://malcolmmielle.codeberg.page/bark_monitor/@pages/) for information on how to [install](https://malcolmmielle.codeberg.page/bark_monitor/@pages/install/), [use](https://malcolmmielle.codeberg.page/bark_monitor/@pages/record/), and more.
-
-### Local-only mode
-
-From VS Code, open this repository as the workspace and run these commands in its
-integrated terminal:
+From the repository root, create a virtual environment and install the package
+with its video dependencies:
 
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[video]"
+```
+
+For audio-only recording, install without the video extra:
+
+```sh
 python -m pip install -e .
+```
+
+## Run
+
+### Audio recording
+
+Start local audio detection and recording:
+
+```sh
 bark-monitor --local --output-folder ./recordings --config-folder ./config
 ```
 
-No config file or cloud credentials are needed. The `recordings/` and `config/`
-directories are created automatically if missing; both are ignored by Git. This mode
-uses the bundled TFLite model, logs notifications locally, and stops with Ctrl+C. On
-Debian/Ubuntu, install PortAudio first with `sudo apt install libportaudio2`.
+The bundled Lite YamNet model analyzes audio from the default microphone. No
+cloud credentials or service configuration are needed. Stop recording with
+Ctrl+C.
 
-To also record local webcam clips when motion is detected or audio bark detection
-fires, install the video extra and run:
+### Audio and video recording
+
+Start webcam motion detection alongside local audio detection:
 
 ```sh
-uv sync --extra video
-uv run bark-monitor-video --output-folder ./recordings
+bark-monitor-video --output-folder ./recordings
 ```
 
-Each recording session gets its own timestamped folder under `recordings/audio/`.
-Audio files and video clips with audio are stored together in that folder, along
-with the report. For video sessions, the report also includes motion timelines.
-This command uses the laptop's default webcam (`--camera-index 0`), the existing
-microphone stream, the local Lite YamNet model, and bundled local FFmpeg for muxing;
-it does not use cloud services.
+By default, this uses webcam index `0`, records clips for 10 seconds after a
+motion or bark trigger, and extends a clip when another trigger occurs before
+it ends. The video is saved with audio from the microphone. To adjust recording
+settings, pass options such as:
 
-Cloud-backed features are optional. Install the matching extras, for example
-`pip install -e ".[google,telegram]"` for Google Drive and Telegram, or
-`pip install -e ".[nextcloud,telegram]"` for Nextcloud and Telegram.
+```sh
+bark-monitor-video --output-folder ./recordings \
+  --camera-index 1 --recording-seconds 20
+```
 
-## Contributions
+Use `bark-monitor-video --help` to see all available options.
 
-Contributions are always welcome to help show my neighbor is wrong!
+## Local files
 
-Code submitted should be formatted with [ruff](https://docs.astral.sh/ruff/) and the code is managed with [uv](https://docs.astral.sh/uv/).
-All methods should be type hinted and return types should always be present even when it's `None`.
+Each run creates a timestamped session directory under `recordings/audio/`.
+Detected audio snippets, video clips (when enabled), and `session_report.html`
+are saved there. The report shows the session timeline, detected sounds, motion,
+and activity durations. Overall recording state is stored in
+`recordings/recording.json`.
 
-If possible, submit unit tests and a picture of your dog with your PR (I also accept cat pictures as payments).
+The recordings remain in the output directory; back them up or remove them
+according to your needs.
+
+## Upstream attribution
+
+This project is based on [Bark Monitor by Malcolm Mielle](https://codeberg.org/MalcolmMielle/bark_monitor).
+This fork has been substantially customized, with an emphasis on local storage
+and video detection and recording. The upstream project and its author are
+credited here; this README describes this fork.
+
+## Development
+
+Run the test suite with:
+
+```sh
+python -m unittest discover -s tests
+```
+
+The project is licensed under the GNU Affero General Public License v3.0; see
+[LICENSE.md](LICENSE.md).
